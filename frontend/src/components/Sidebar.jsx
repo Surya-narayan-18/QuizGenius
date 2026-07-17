@@ -206,7 +206,7 @@ export default function Sidebar({
 
         {/* Tagline */}
         <p style={{ fontSize: '0.88rem', color: '#777', lineHeight: 1.5, marginBottom: '20px' }}>
-          Pick any topic and let Gemini AI generate a personalized quiz in seconds.
+          Pick any topic and let Groq AI generate a personalized quiz in seconds.
         </p>
 
         <SidebarDivider />
@@ -225,7 +225,7 @@ export default function Sidebar({
             iconColor="#CE82FF"
             iconBg="#F3E8FF"
             label="Powered by"
-            value="Gemini AI"
+            value="Groq AI"
           />
           <StatCard
             icon={List}
@@ -416,7 +416,7 @@ export default function Sidebar({
           iconColor="#CE82FF"
           iconBg="#F3E8FF"
           label="Powered by"
-          value="Gemini AI"
+          value="Groq AI"
         />
         <StatCard
           icon={List}

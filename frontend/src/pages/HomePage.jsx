@@ -111,7 +111,7 @@ export default function HomePage() {
               Start a Quiz
             </h1>
             <p style={{ color: 'rgba(255,255,255,0.88)', fontSize: '1rem', lineHeight: 1.5, position: 'relative', maxWidth: '520px' }}>
-              Pick any topic, choose your difficulty, and let Gemini AI generate a personalized quiz in seconds.
+              Pick any topic, choose your difficulty, and let Groq AI generate a personalized quiz in seconds.
             </p>
           </div>
 
@@ -249,7 +249,7 @@ export default function HomePage() {
                   {[
                     { n: '1', text: 'Type any topic or pick from suggestions' },
                     { n: '2', text: 'Set difficulty and number of questions' },
-                    { n: '3', text: 'Gemini AI generates your quiz instantly' },
+                    { n: '3', text: 'Groq AI generates your quiz instantly' },
                     { n: '4', text: 'Answer, get feedback, and see your score' },
                   ].map(({ n, text }) => (
                     <div key={n} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

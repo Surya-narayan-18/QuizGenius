@@ -10,10 +10,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Configuration ──────────────────────────────────────────────────────────────
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const MAX_RETRIES = 3;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const QUIZ_TOKEN_SECRET = process.env.QUIZ_TOKEN_SECRET;
+
+// ─── Groq client ────────────────────────────────────────────────────────────────
+const Groq = require('groq-sdk');
+const groq = new Groq({ apiKey: GROQ_API_KEY });
 
 // ─── Middleware ──────────────────────────────────────────────────────────────────
 app.use(cors());
@@ -55,27 +59,23 @@ function verifyToken(token) {
   }
 }
 
-// ─── Gemini API Call ────────────────────────────────────────────────────────────
+// ─── Groq API Call ──────────────────────────────────────────────────────────────
 
-async function callGemini(topic, difficulty, numQuestions) {
+async function callGroq(topic, difficulty, numQuestions) {
   const difficultyGuide = {
     easy: 'basic, widely known facts — suitable for beginners',
     medium: 'intermediate knowledge — requires some familiarity with the topic',
     hard: 'advanced, nuanced questions — requires deep expertise',
   };
 
-  const prompt = `Generate exactly ${numQuestions} multiple-choice quiz questions about "${topic}" at ${difficulty} difficulty level (${difficultyGuide[difficulty]}).
-
-Return ONLY a valid JSON array — no markdown fences, no commentary, no extra text. Each element must match this exact structure:
+  const systemMessage = `You are a quiz-generation assistant. When asked, you output ONLY a valid JSON array of multiple-choice quiz questions — no markdown fences, no commentary, no extra text. Each element must match this exact structure:
 {
   "question": "The question text here",
   "options": ["Option A", "Option B", "Option C", "Option D"],
   "correctIndex": 0,
   "explanation": "One-sentence explanation of why the correct answer is right"
 }
-
 Rules:
-- The array must contain exactly ${numQuestions} objects.
 - Each object must have exactly 4 options.
 - "correctIndex" must be an integer from 0 to 3.
 - Questions must be factually accurate and unambiguous.
@@ -83,31 +83,30 @@ Rules:
 - Do NOT repeat questions.
 - Return ONLY the raw JSON array.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
+  const userMessage = `Generate exactly ${numQuestions} multiple-choice quiz questions about "${topic}" at ${difficulty} difficulty level (${difficultyGuide[difficulty]}). The array must contain exactly ${numQuestions} objects.`;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.8,
-        maxOutputTokens: 8192,
-        responseMimeType: 'application/json',
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errBody = await response.text().catch(() => '');
-    throw new Error(`Gemini API returned ${response.status}: ${errBody.slice(0, 200)}`);
+  let response;
+  try {
+    response = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user',   content: userMessage },
+      ],
+      temperature: 0.7,
+    });
+  } catch (err) {
+    // Groq-specific error handling
+    const status = err?.status ?? err?.statusCode;
+    if (status === 401) throw new Error('Groq API error: Invalid API key (401). Check your GROQ_API_KEY.');
+    if (status === 429) throw new Error('Groq API error: Rate limit exceeded (429). Please wait and try again.');
+    throw new Error(`Groq API error: ${err.message ?? String(err)}`);
   }
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = response.choices?.[0]?.message?.content;
 
-  if (!text) {
-    throw new Error('Empty response from Gemini API');
+  if (!text || !text.trim()) {
+    throw new Error('Empty response from Groq API');
   }
 
   // Parse JSON — strip markdown fences if present
@@ -156,8 +155,8 @@ Rules:
 // ─── POST /api/quiz/generate ────────────────────────────────────────────────────
 
 app.post('/api/quiz/generate', async (req, res) => {
-  if (!GEMINI_API_KEY || !QUIZ_TOKEN_SECRET) {
-    return res.status(500).json({ error: 'Server misconfigured — missing environment variables.' });
+  if (!GROQ_API_KEY || !QUIZ_TOKEN_SECRET) {
+    return res.status(500).json({ error: 'Server misconfigured — missing GROQ_API_KEY or QUIZ_TOKEN_SECRET.' });
   }
 
   const { topic, difficulty, numQuestions } = req.body || {};
@@ -178,7 +177,7 @@ app.post('/api/quiz/generate', async (req, res) => {
   let lastError;
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const questions = await callGemini(topic.trim(), difficulty, num);
+      const questions = await callGroq(topic.trim(), difficulty, num);
 
       // Add stable IDs
       const fullQuestions = questions.map((q, i) => ({
@@ -268,6 +267,7 @@ app.post('/api/quiz/submit', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`🧠 QuizGenius server running on http://localhost:${PORT}`);
-  console.log(`   GEMINI_API_KEY: ${GEMINI_API_KEY ? GEMINI_API_KEY.slice(0, 8) + '...' : '❌ NOT SET'}`);
+  console.log(`   GROQ_API_KEY: ${GROQ_API_KEY ? GROQ_API_KEY.slice(0, 8) + '...' : '❌ NOT SET'}`);
+  console.log(`   GROQ_MODEL:   ${GROQ_MODEL}`);
   console.log(`   QUIZ_TOKEN_SECRET: ${QUIZ_TOKEN_SECRET ? '✅ loaded' : '❌ NOT SET'}`);
 });
