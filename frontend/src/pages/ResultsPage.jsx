@@ -10,7 +10,7 @@ const LETTERS = ['A', 'B', 'C', 'D'];
 
 export default function ResultsPage() {
   const navigate = useNavigate();
-  const { score, total, results, topic, difficulty, resetQuiz, retryTopic, phase, loading } = useQuizContext();
+  const { score, total, results, topic, difficulty, resetQuiz, retryTopic, phase, loading, feedbackText } = useQuizContext();
 
   useEffect(() => {
     if (phase !== 'results' && phase !== 'generating') navigate('/', { replace: true });
@@ -48,9 +48,9 @@ export default function ResultsPage() {
 
       {/* ── Main content ─────────────────────────── */}
       <div className="content-area">
-        <main className="main-content" style={{ paddingTop: '48px', paddingBottom: '48px', overflowY: 'auto' }}>
+        <main style={{ padding: '48px 56px', width: '100%', overflowY: 'auto' }}>
           {/* Score summary */}
-          <ResultSummary score={score} total={total} />
+          <ResultSummary score={score} total={total} feedbackText={feedbackText} />
 
           {/* Divider */}
           <div style={{ height: '2px', background: '#E5E5E5', margin: '40px 0' }} />

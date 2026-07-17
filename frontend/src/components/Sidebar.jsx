@@ -10,13 +10,18 @@
  *   onNewTopic, onRetry, retryLoading — result actions (variant=results)
  */
 
+import { useNavigate } from 'react-router-dom';
+import { useQuizContext } from '../context/QuizContext';
+
 import {
   Brain,
   Infinity as InfinityIcon,
   Bot,
   List,
   CheckCircle2,
+  XCircle,
   Circle,
+  CircleDashed,
   Dot,
   Leaf,
   Flame,
@@ -31,8 +36,26 @@ import {
 
 /* ── Brand header (always visible) ───────────────────────────────────── */
 function SidebarBrand() {
+  const navigate = useNavigate();
+  const { resetQuiz } = useQuizContext();
+
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
+    <button
+      onClick={() => { resetQuiz(); navigate('/'); }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '12px',
+        marginBottom: '28px',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: 0,
+        textAlign: 'left',
+        width: '100%'
+      }}
+      aria-label="Go to Home"
+    >
       <div
         style={{
           width: '44px',
@@ -56,7 +79,7 @@ function SidebarBrand() {
           AI-POWERED QUIZZES
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -164,13 +187,16 @@ export default function Sidebar({
   difficulty,
   numQuestions,
   questions = [],
+  answerKey = [],
   answers = {},
   currentIndex = 0,
+  highestVisitedIndex = 0,
   score,
   total,
   onNewTopic,
   onRetry,
   retryLoading,
+  goToQuestion,
 }) {
   /* ── HOME variant ─────────────────────────────────────────────────── */
   if (variant === 'home') {
@@ -243,31 +269,70 @@ export default function Sidebar({
             {questions.map((q, i) => {
               const isDone    = answers[q.id] !== undefined;
               const isCurrent = i === currentIndex;
+              const isVisited = i <= highestVisitedIndex;
+              
+              let IconComp = Circle;
+              let iconColor = "#AFAFAF";
+              let iconBg = "#E5E5E5";
+              let strokeWidth = 2;
+
+              if (isDone) {
+                const isCorrect = answerKey.find(k => k.id === q.id)?.correctIndex === answers[q.id];
+                IconComp = isCorrect ? CheckCircle2 : XCircle;
+                iconBg = isCorrect ? '#58CC02' : '#FF4B4B';
+                iconColor = "white";
+                strokeWidth = 3;
+              } else if (isCurrent) {
+                IconComp = Dot;
+                iconBg = '#1CB0F6';
+                iconColor = "white";
+                strokeWidth = 4;
+              } else if (isVisited) {
+                IconComp = CircleDashed;
+                iconBg = 'transparent';
+                iconColor = "#AFAFAF";
+                strokeWidth = 2;
+              }
+
               return (
-                <div
+                <button
                   key={q.id}
-                  className={`sidebar-q-item ${isCurrent ? 'current' : isDone ? 'done' : 'upcoming'}`}
+                  type="button"
+                  onClick={() => { if (isVisited && goToQuestion) goToQuestion(i); }}
+                  disabled={!isVisited}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
+                    background: isCurrent ? 'rgba(28, 176, 246, 0.1)' : 'transparent',
+                    border: 'none',
+                    textAlign: 'left',
+                    cursor: isVisited ? 'pointer' : 'default',
+                    opacity: isVisited ? 1 : 0.6,
+                    transition: 'background 0.2s',
+                    width: '100%',
+                  }}
                 >
                   <span
                     style={{
                       width: '22px',
                       height: '22px',
                       borderRadius: '50%',
-                      background: isCurrent ? '#1CB0F6' : isDone ? '#58CC02' : '#E5E5E5',
+                      background: iconBg,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       flexShrink: 0,
                     }}
                   >
-                    {isDone
-                      ? <CheckCircle2 size={14} color="white" strokeWidth={3} />
-                      : isCurrent
-                      ? <Dot size={14} color="white" strokeWidth={4} />
-                      : <Circle size={14} color="#AFAFAF" strokeWidth={2} />}
+                    <IconComp size={14} color={iconColor} strokeWidth={strokeWidth} />
                   </span>
-                  <span style={{ fontSize: '0.83rem' }}>Q{i + 1}</span>
-                </div>
+                  <span style={{ fontSize: '0.88rem', fontWeight: isCurrent ? 800 : 600, color: isCurrent ? '#1CB0F6' : '#555' }}>
+                    Question {i + 1}
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -322,12 +387,45 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <SidebarBrand />
+      
       {topic && (
-        <div style={{ marginTop: '8px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <SectionLabel>Generating quiz for</SectionLabel>
-          <p style={{ fontWeight: 800, fontSize: '0.95rem', color: '#3C3C3C' }}>{topic}</p>
+          <p style={{ fontWeight: 800, fontSize: '0.95rem', color: '#3C3C3C', marginBottom: '14px' }}>{topic}</p>
+          {difficulty && (
+            <>
+              <SectionLabel>Difficulty</SectionLabel>
+              <DifficultyBadge level={difficulty} />
+            </>
+          )}
         </div>
       )}
+
+      <SidebarDivider />
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <StatCard
+          icon={InfinityIcon}
+          iconColor="#1CB0F6"
+          iconBg="#D2F4FF"
+          label="Topics Available"
+          value="Unlimited"
+        />
+        <StatCard
+          icon={Bot}
+          iconColor="#CE82FF"
+          iconBg="#F3E8FF"
+          label="Powered by"
+          value="Gemini AI"
+        />
+        <StatCard
+          icon={List}
+          iconColor="#58CC02"
+          iconBg="#D7FFB8"
+          label="Questions per Quiz"
+          value={numQuestions ? numQuestions.toString() : "5 – 15"}
+        />
+      </div>
     </aside>
   );
 }

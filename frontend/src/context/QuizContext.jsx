@@ -3,6 +3,7 @@ import {
   generateQuiz as apiGenerateQuiz,
   submitQuiz as apiSubmitQuiz,
 } from '../services/api';
+import { generateFeedback } from '../utils/feedback';
 
 // ─── Context ────────────────────────────────────────────────────────────────────
 const QuizContext = createContext(null);
@@ -47,12 +48,14 @@ export function QuizProvider({ children }) {
   const [answerKey, setAnswerKey] = useState([]);
   const [quizToken, setQuizToken] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [highestVisitedIndex, setHighestVisitedIndex] = useState(0);
   const [answers, setAnswers] = useState({});
 
   // Results state
   const [results, setResults] = useState(null);
   const [score, setScore] = useState(null);
   const [total, setTotal] = useState(null);
+  const [feedbackText, setFeedbackText] = useState('');
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -79,6 +82,7 @@ export function QuizProvider({ children }) {
       setQuizToken(data.quizToken);
       setAnswerKey(decodeTokenPayload(data.quizToken) || []);
       setCurrentIndex(0);
+      setHighestVisitedIndex(0);
       setAnswers({});
       setResults(null);
       setScore(null);
@@ -99,8 +103,22 @@ export function QuizProvider({ children }) {
   }, []);
 
   const nextQuestion = useCallback(() => {
-    setCurrentIndex((prev) => prev + 1);
+    setCurrentIndex((prev) => {
+      const nextIdx = prev + 1;
+      setHighestVisitedIndex((h) => Math.max(h, nextIdx));
+      return nextIdx;
+    });
   }, []);
+
+  const goToQuestion = useCallback((index) => {
+    setCurrentIndex((prev) => {
+      // Only allow navigating to visited questions
+      if (index <= highestVisitedIndex) {
+        return index;
+      }
+      return prev;
+    });
+  }, [highestVisitedIndex]);
 
   const submitAnswers = useCallback(async () => {
     setSubmitting(true);
@@ -111,6 +129,7 @@ export function QuizProvider({ children }) {
       setResults(data.results);
       setScore(data.score);
       setTotal(data.total);
+      setFeedbackText(generateFeedback(data.score, data.total, topic));
       setPhase('results');
       return true;
     } catch (err) {
@@ -130,10 +149,12 @@ export function QuizProvider({ children }) {
     setAnswerKey([]);
     setQuizToken('');
     setCurrentIndex(0);
+    setHighestVisitedIndex(0);
     setAnswers({});
     setResults(null);
     setScore(null);
     setTotal(null);
+    setFeedbackText('');
     setError(null);
     setPhase('setup');
   }, []);
@@ -154,10 +175,12 @@ export function QuizProvider({ children }) {
       setQuizToken(data.quizToken);
       setAnswerKey(decodeTokenPayload(data.quizToken) || []);
       setCurrentIndex(0);
+      setHighestVisitedIndex(0);
       setAnswers({});
       setResults(null);
       setScore(null);
       setTotal(null);
+      setFeedbackText('');
       setPhase('playing');
       return true;
     } catch (err) {
@@ -168,6 +191,12 @@ export function QuizProvider({ children }) {
       setLoading(false);
     }
   }, [topic, difficulty, numQuestions]);
+
+  // ─── Computed ───────────────────────────────────────────────────────
+  const liveScore = Object.entries(answers).reduce((acc, [questionId, optionIndex]) => {
+    const isCorrect = answerKey.find((q) => q.id === questionId)?.correctIndex === optionIndex;
+    return acc + (isCorrect ? 1 : 0);
+  }, 0);
 
   // ─── Value ──────────────────────────────────────────────────────────
   const value = {
@@ -184,12 +213,15 @@ export function QuizProvider({ children }) {
     answerKey,
     quizToken,
     currentIndex,
+    highestVisitedIndex,
     answers,
+    liveScore,
 
     // Results
     results,
     score,
     total,
+    feedbackText,
 
     // UI
     loading,
@@ -202,6 +234,7 @@ export function QuizProvider({ children }) {
     startQuiz,
     answerQuestion,
     nextQuestion,
+    goToQuestion,
     submitAnswers,
     resetQuiz,
     retryTopic,

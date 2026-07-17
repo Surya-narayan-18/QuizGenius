@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
-import { Trophy, Target, Dumbbell, BookOpen } from 'lucide-react';
+import { Trophy, Target, Dumbbell, BookOpen, Sparkles } from 'lucide-react';
 
 function getScoreTier(score, total) {
   const pct = (score / total) * 100;
@@ -10,7 +10,7 @@ function getScoreTier(score, total) {
   return           { Icon: BookOpen,  title: 'Keep Practicing!', color: '#CE82FF', bg: '#F3E8FF', border: '#A560D8' };
 }
 
-export default function ResultSummary({ score, total }) {
+export default function ResultSummary({ score, total, feedbackText }) {
   const tier = getScoreTier(score, total);
   const fired = useRef(false);
 
@@ -53,10 +53,54 @@ export default function ResultSummary({ score, total }) {
       <h1 style={{ fontWeight: 900, fontSize: '2rem', color: '#3C3C3C', marginBottom: '8px' }}>
         {tier.title}
       </h1>
-      <p style={{ color: '#777', fontSize: '1.1rem' }}>
+      <p style={{ color: '#777', fontSize: '1.1rem', marginBottom: '24px' }}>
         You got <strong style={{ color: tier.color }}>{score}</strong> out of{' '}
         <strong>{total}</strong> correct
       </p>
+
+      {/* Feedback Card */}
+      {feedbackText && (
+        <div
+          style={{
+            maxWidth: '520px',
+            margin: '0 auto',
+            background: 'white',
+            border: '2px solid #E5E5E5',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '16px',
+            textAlign: 'left',
+            animation: 'var(--animate-fade-up)',
+            animationDelay: '0.1s',
+            animationFillMode: 'both',
+          }}
+        >
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '10px',
+              background: '#F3E8FF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <Sparkles size={20} color="#CE82FF" strokeWidth={2.5} />
+          </div>
+          <div>
+            <p style={{ fontWeight: 800, fontSize: '0.85rem', color: '#CE82FF', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: '6px' }}>
+              Feedback
+            </p>
+            <p style={{ fontSize: '0.95rem', color: '#555', lineHeight: 1.5, fontWeight: 500 }}>
+              {feedbackText}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

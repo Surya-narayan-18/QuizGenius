@@ -215,8 +215,8 @@ body {
 }
 
 .main-content {
-  padding: 48px 64px;
-  max-width: 860px;
+  padding: 48px 56px;
+  max-width: 1040px;
   margin: 0 auto;
   width: 100%;
 }

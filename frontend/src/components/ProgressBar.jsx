@@ -17,10 +17,9 @@ export default function ProgressBar({ current, total }) {
         />
       </div>
 
-      {/* XP counter */}
-      <div className="xp-pill">
-        <Zap size={14} color="#E5A800" strokeWidth={2.5} fill="#E5A800" />
-        {current}/{total}
+      {/* Question counter */}
+      <div className="xp-pill" style={{ color: '#AFAFAF', fontWeight: 700, fontSize: '0.85rem' }}>
+        Question {current} of {total}
       </div>
     </div>
   );

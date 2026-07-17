@@ -6,13 +6,14 @@ import AnswerOption from '../components/AnswerOption';
 import ProgressBar from '../components/ProgressBar';
 import FeedbackBanner from '../components/FeedbackBanner';
 import Sidebar from '../components/Sidebar';
-import { ChevronRight, Trophy, Loader2 } from 'lucide-react';
+import Timer from '../components/Timer';
+import { ChevronRight, ChevronLeft, Trophy, Loader2, Target } from 'lucide-react';
 
 export default function QuizPage() {
   const navigate = useNavigate();
   const {
-    questions, answerKey, currentIndex, answers,
-    answerQuestion, nextQuestion, submitAnswers,
+    questions, answerKey, currentIndex, answers, highestVisitedIndex, liveScore,
+    answerQuestion, nextQuestion, goToQuestion, submitAnswers,
     phase, submitting, topic, difficulty,
   } = useQuizContext();
 
@@ -32,13 +33,29 @@ export default function QuizPage() {
 
   const handleAnswer = (idx) => { if (!hasAnswered) answerQuestion(question.id, idx); };
 
+  const handleSkip = () => {
+    if (!hasAnswered) answerQuestion(question.id, -1);
+  };
+
+  const isSkipped = selectedAnswer === -1;
+  const isReviewing = currentIndex < highestVisitedIndex;
+  const canGoNext = hasAnswered || isReviewing;
+  const canGoPrev = currentIndex > 0;
+
   const handleNext = async () => {
     if (isLastQuestion) {
+      if (!hasAnswered) return;
       const ok = await submitAnswers();
       if (ok) navigate('/results');
+    } else if (isReviewing) {
+      goToQuestion(currentIndex + 1);
     } else {
       nextQuestion();
     }
+  };
+
+  const handlePrev = () => {
+    if (canGoPrev) goToQuestion(currentIndex - 1);
   };
 
   return (
@@ -49,16 +66,43 @@ export default function QuizPage() {
         topic={topic}
         difficulty={difficulty}
         questions={questions}
+        answerKey={answerKey}
         answers={answers}
         currentIndex={currentIndex}
+        highestVisitedIndex={highestVisitedIndex}
+        goToQuestion={goToQuestion}
       />
 
       {/* ── Main content ─────────────────────────── */}
       <div className="content-area">
-        <main className="main-content" style={{ paddingTop: '48px', paddingBottom: '48px' }}>
-          {/* Progress */}
-          <div style={{ marginBottom: '40px' }}>
-            <ProgressBar current={currentIndex} total={questions.length} />
+        <main style={{ padding: '48px 56px', width: '100%', maxWidth: '900px' }}>
+          {/* Progress and Score Header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
+            <div style={{ flex: 1, maxWidth: '60%' }}>
+              <ProgressBar current={currentIndex + 1} total={questions.length} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {!hasAnswered && (
+                <Timer duration={30} onTimeUp={handleSkip} questionIndex={currentIndex} />
+              )}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  color: '#3C3C3C',
+                  background: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  border: '2px solid #E5E5E5',
+                }}
+              >
+                <Target size={18} color="#1CB0F6" strokeWidth={2.5} />
+                Score: <span style={{ color: '#1CB0F6', marginLeft: '4px' }}>{liveScore}</span> / {questions.length}
+              </div>
+            </div>
           </div>
 
           {/* Question card */}
@@ -89,35 +133,63 @@ export default function QuizPage() {
 
             {/* Feedback — rendered outside the options list to avoid stagger re-trigger */}
             {hasAnswered && explanation != null && (
-              <FeedbackBanner isCorrect={selectedAnswer === correctIndex} explanation={explanation} />
+              <FeedbackBanner isCorrect={selectedAnswer === correctIndex} isSkipped={isSkipped} explanation={explanation} />
             )}
 
             {/* Next / Submit button */}
-            {hasAnswered && (
+            {(canGoNext || canGoPrev || !hasAnswered) && (
               <div
                 style={{
                   marginTop: '28px',
                   display: 'flex',
-                  justifyContent: 'flex-end',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   animation: 'var(--animate-fade-up)',
                 }}
               >
-                <button
-                  onClick={handleNext}
-                  disabled={submitting}
-                  className="btn-duo btn-duo-green"
-                  type="button"
-                  id="next-question-btn"
-                  style={{ minWidth: '180px' }}
-                >
-                  {submitting ? (
-                    <><Loader2 size={16} strokeWidth={2.5} style={{ animation: 'spin-slow 1s linear infinite' }} /> Submitting…</>
-                  ) : isLastQuestion ? (
-                    <><Trophy size={16} strokeWidth={2.5} /> See Results</>
-                  ) : (
-                    <>Continue <ChevronRight size={16} strokeWidth={2.5} /></>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {canGoPrev && (
+                    <button
+                      onClick={handlePrev}
+                      className="btn-duo"
+                      style={{ background: 'transparent', color: '#777', border: '2px solid #E5E5E5', padding: '12px 18px' }}
+                      type="button"
+                    >
+                      <ChevronLeft size={16} strokeWidth={2.5} /> Previous
+                    </button>
                   )}
-                </button>
+                  {!hasAnswered && (
+                    <button
+                      onClick={handleSkip}
+                      className="btn-duo"
+                      style={{ background: '#F7F7F7', color: '#777', border: '2px solid #E5E5E5', padding: '12px 18px' }}
+                      type="button"
+                    >
+                      Skip <ChevronRight size={16} strokeWidth={2.5} />
+                    </button>
+                  )}
+                </div>
+                
+                <div>
+                  {canGoNext && (
+                    <button
+                      onClick={handleNext}
+                      disabled={submitting || (isLastQuestion && !hasAnswered)}
+                      className="btn-duo btn-duo-green"
+                      type="button"
+                      id="next-question-btn"
+                      style={{ minWidth: '180px' }}
+                    >
+                      {submitting ? (
+                        <><Loader2 size={16} strokeWidth={2.5} style={{ animation: 'spin-slow 1s linear infinite' }} /> Submitting…</>
+                      ) : (isLastQuestion && !isReviewing) ? (
+                        <><Trophy size={16} strokeWidth={2.5} /> See Results</>
+                      ) : (
+                        <>{isReviewing && !hasAnswered ? 'Next' : 'Continue'} <ChevronRight size={16} strokeWidth={2.5} /></>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </QuizCard>
