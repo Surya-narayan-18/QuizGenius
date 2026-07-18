@@ -97,15 +97,19 @@ export default function HomePage() {
               marginBottom: '32px',
               boxShadow: '0 6px 0 #2e7a00',
               position: 'relative',
-              overflow: 'hidden',
               animation: 'var(--animate-fade-up)',
+              boxSizing: 'border-box',
+              flexShrink: 0,
             }}
           >
-            {/* Decorative blobs */}
-            <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '140px', height: '140px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
-            <div style={{ position: 'absolute', bottom: '-36px', right: '100px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
-            <div style={{ position: 'absolute', top: '50%', right: 'var(--banner-pad)', transform: 'translateY(-50%)', opacity: 0.15 }}>
-              <Brain size={72} color="white" strokeWidth={1} />
+            {/* Background Blob Layer to contain overflow without clipping main content */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', borderRadius: '20px', pointerEvents: 'none' }}>
+              {/* Decorative blobs */}
+              <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '140px', height: '140px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ position: 'absolute', bottom: '-36px', right: '100px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
+              <div style={{ position: 'absolute', top: '50%', right: 'var(--banner-pad)', transform: 'translateY(-50%)', opacity: 0.15 }}>
+                <Brain size={72} color="white" strokeWidth={1} />
+              </div>
             </div>
 
             <h1 style={{ fontWeight: 900, fontSize: '2.1rem', color: 'white', lineHeight: 1.1, marginBottom: '8px', position: 'relative' }}>
