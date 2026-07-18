@@ -90,9 +90,10 @@ export default function HomePage() {
           {/* ── Hero banner — full width ──────────────────────────── */}
           <div
             style={{
+              '--banner-pad': '40px',
               background: 'linear-gradient(135deg, #58CC02 0%, #3ea800 100%)',
               borderRadius: '20px',
-              padding: '28px 36px',
+              padding: 'var(--banner-pad) calc(var(--banner-pad) + 90px) var(--banner-pad) var(--banner-pad)',
               marginBottom: '32px',
               boxShadow: '0 6px 0 #2e7a00',
               position: 'relative',
@@ -103,14 +104,14 @@ export default function HomePage() {
             {/* Decorative blobs */}
             <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '140px', height: '140px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
             <div style={{ position: 'absolute', bottom: '-36px', right: '100px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
-            <div style={{ position: 'absolute', top: '50%', right: '36px', transform: 'translateY(-50%)', opacity: 0.15 }}>
+            <div style={{ position: 'absolute', top: '50%', right: 'var(--banner-pad)', transform: 'translateY(-50%)', opacity: 0.15 }}>
               <Brain size={72} color="white" strokeWidth={1} />
             </div>
 
             <h1 style={{ fontWeight: 900, fontSize: '2.1rem', color: 'white', lineHeight: 1.1, marginBottom: '8px', position: 'relative' }}>
               Start a Quiz
             </h1>
-            <p style={{ color: 'rgba(255,255,255,0.88)', fontSize: '1rem', lineHeight: 1.5, position: 'relative', maxWidth: '520px' }}>
+            <p style={{ color: 'rgba(255,255,255,0.88)', fontSize: '1rem', lineHeight: 1.5, position: 'relative', maxWidth: '520px', margin: 0 }}>
               Pick any topic, choose your difficulty, and let Groq AI generate a personalized quiz in seconds.
             </p>
           </div>
